@@ -5,7 +5,7 @@ from datetime import datetime
 from collections import defaultdict
 
 # Caminhos
-planilha_caminho = r"C:\Users\trank\Desktop\Pasta1.xlsx"
+planilha_caminho = "C:\Users\306253\Desktop\Pasta1.xlsx"
 historico_path = r"historico_notificacoes.xlsx"
 
 # Verifica se a planilha existe
