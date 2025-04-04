@@ -14,20 +14,17 @@ if not os.path.exists(planilha_caminho):
     print("❌ ERRO: Planilha não encontrada.")
     exit()
 
-# Verifica se o histórico existe
-print(f"Verificando se o histórico existe: {historico_path}")
-if not os.path.exists(historico_path):
-    print("📚 Histórico não encontrado, criando um novo arquivo.")
-    historico_df = pd.DataFrame(columns=["Nome", "Email", "Data"])
-else:
-    # Lê o histórico
-    historico_df = pd.read_excel(historico_path)
-
 # Lê os dados da planilha principal
 df = pd.read_excel(planilha_caminho)
 
 # Mostra as colunas disponíveis para evitar futuros erros
 print("📊 Colunas encontradas na planilha:", df.columns.tolist())
+
+# Lê o histórico ou cria um novo DataFrame se não existir
+if os.path.exists(historico_path):
+    historico_df = pd.read_excel(historico_path)
+else:
+    historico_df = pd.DataFrame(columns=["Nome", "Email", "Data"])
 
 # Agrupa as datas esquecidas por funcionário
 funcionarios = defaultdict(list)
@@ -37,9 +34,9 @@ for _, row in df.iterrows():
     email = row['Email']
     data = row['Data']
 
-    # Formata a data para o padrão brasileiro (dd/mm/aaaa)
+    # Formata a data para o padrão brasileiro (dd/mm/aaaa) e remove o horário
     if isinstance(data, pd.Timestamp):
-        data = data.strftime("%d/%m/%Y")
+        data = data.strftime("%d/%m/%Y")  # Formato brasileiro
 
     funcionarios[(nome.strip().lower(), email.strip().lower())].append(data)
 
@@ -54,7 +51,7 @@ for i in range(namespace.Accounts.Count):
     print(f"- {conta.DisplayName} | {conta.SmtpAddress}")
 
 # Define o e-mail de envio
-email_envio = "dh_ponto@fundasp.org.br"
+email_envio = "silvawr@fundasp.org.br"
 conta_encontrada = None
 
 for i in range(namespace.Accounts.Count):
@@ -84,12 +81,27 @@ for (nome, email), datas in funcionarios.items():
     assunto = f"{prefixo} Notificação de Esquecimento"
     print(f"DEBUG: Assunto do e-mail antes do envio -> {assunto}")
 
-    corpo = f"""
+    # Ajusta o texto para o plural ou singular com base no número de datas
+    if len(datas) > 1:
+        corpo = f"""
 Olá {nome.title()},
 
 Identificamos que você esqueceu de registrar o ponto nas seguintes datas:
 
 {chr(10).join(f"- {d}" for d in datas)}
+
+Essas são suas {prefixo.lower()} notificações sobre esse tipo de ocorrência. Por favor, redobre a atenção para evitar impactos no controle de frequência.
+
+Atenciosamente,
+Recursos Humanos
+"""
+    else:
+        corpo = f"""
+Olá {nome.title()},
+
+Identificamos que você esqueceu de registrar o ponto na seguinte data:
+
+{datas[0]}
 
 Essa é sua {prefixo.lower()} notificação sobre esse tipo de ocorrência. Por favor, redobre a atenção para evitar impactos no controle de frequência.
 
@@ -119,3 +131,4 @@ Recursos Humanos
 # Salva o histórico
 historico_df.to_excel(historico_path, index=False)
 print("✅ Notificações enviadas e histórico atualizado!")
+
