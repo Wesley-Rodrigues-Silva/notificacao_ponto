@@ -5,8 +5,8 @@ from datetime import datetime
 from collections import defaultdict
 
 # Caminhos
-planilha_caminho = "C:\Users\306253\Desktop\Pasta1.xlsx"
-historico_path = r"historico_notificacoes.xlsx"
+planilha_caminho = r"C:\Users\306253\Desktop\Pasta1.xlsx"
+historico_path = r"C:\Users\306253\Desktop\historico.xlsx"
 
 # Verifica se a planilha existe
 print(f"Verificando se a planilha mensal existe: {planilha_caminho}")
@@ -14,17 +14,20 @@ if not os.path.exists(planilha_caminho):
     print("❌ ERRO: Planilha não encontrada.")
     exit()
 
+# Verifica se o histórico existe
+print(f"Verificando se o histórico existe: {historico_path}")
+if not os.path.exists(historico_path):
+    print("📚 Histórico não encontrado, criando um novo arquivo.")
+    historico_df = pd.DataFrame(columns=["Nome", "Email", "Data"])
+else:
+    # Lê o histórico
+    historico_df = pd.read_excel(historico_path)
+
 # Lê os dados da planilha principal
 df = pd.read_excel(planilha_caminho)
 
 # Mostra as colunas disponíveis para evitar futuros erros
 print("📊 Colunas encontradas na planilha:", df.columns.tolist())
-
-# Lê o histórico ou cria um novo DataFrame se não existir
-if os.path.exists(historico_path):
-    historico_df = pd.read_excel(historico_path)
-else:
-    historico_df = pd.DataFrame(columns=["Nome", "Email", "Data"])
 
 # Agrupa as datas esquecidas por funcionário
 funcionarios = defaultdict(list)
@@ -33,7 +36,12 @@ for _, row in df.iterrows():
     nome = row['Nome']
     email = row['Email']
     data = row['Data']
-    funcionarios[(nome.strip().lower(), email.strip().lower())].append(str(data))
+
+    # Formata a data para o padrão brasileiro (dd/mm/aaaa)
+    if isinstance(data, pd.Timestamp):
+        data = data.strftime("%d/%m/%Y")
+
+    funcionarios[(nome.strip().lower(), email.strip().lower())].append(data)
 
 # Conecta ao Outlook
 outlook = win32.Dispatch("Outlook.Application")
@@ -46,7 +54,7 @@ for i in range(namespace.Accounts.Count):
     print(f"- {conta.DisplayName} | {conta.SmtpAddress}")
 
 # Define o e-mail de envio
-email_envio = "fisioap@outlook.com.br"
+email_envio = "dh_ponto@fundasp.org.br"
 conta_encontrada = None
 
 for i in range(namespace.Accounts.Count):
